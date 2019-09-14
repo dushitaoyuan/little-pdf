@@ -1,0 +1,13 @@
+body{
+    font-family: simhei;
+}
+
+.text-line {
+    text-decoration: underline;
+    color: gray;
+}
+
+.title{
+    width: 100%;
+    text-align: center;
+}

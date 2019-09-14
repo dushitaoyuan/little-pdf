@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="${title}">标题</title>
+    <link rel="stylesheet" type="text/css" href="classpath:pdftemplate/css/pdf.css"/>
+</head>
+<body>
+<h1 th:text="${title}">
+    标题
+</h1>
+<div th:text="${content}">
+    内容
+</div>
+<img src="classpath:pdftemplate/img/css.png" height="300px" width="300px"/>
+<img src="https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=3190441126,995644236&fm=26&gp=0.jpg" height="300px" width="300px"/>
+<ul>
+<li th:each="item : ${list}" th:text="${item}"></li>
+</ul>
+</body>
+</html>
