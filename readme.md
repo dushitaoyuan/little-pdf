@@ -48,6 +48,10 @@ public class PdfConfig {
     }
 }
 
+little.pdf.fontsDir=G:\github\little-pdf\little-pdf-springboot-sample\src\main\resources\fonts
+little.pdf.resourcesDir=classpath:/pdftemplate
+little.pdf.charset=UTF-8
+
 2. 模板渲染
 
   littlePdfTemplateRender.render(template,jsonObject,outputStreamm);
