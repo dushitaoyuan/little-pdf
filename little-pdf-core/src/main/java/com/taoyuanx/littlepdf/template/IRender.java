@@ -1,15 +1,15 @@
-package com.taoyuanx.littlepdf.template.html;
+package com.taoyuanx.littlepdf.template;
 
 import java.util.Map;
 
 /**
  * @author dushitaoyuan
  * @date 2019/9/821:43
- * @desc: html渲染接口
+ * @desc: 渲染接口
  */
-public interface IHtmlRender {
+public interface IRender {
     /**
-     * html渲染接口
+     * 渲染接口
      * @param templatePath 模板路径
      * @param renderData 渲染数据
      * @return

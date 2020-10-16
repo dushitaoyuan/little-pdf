@@ -1,4 +1,4 @@
-package com.taoyuanx.littlepdf.template.html2pdf;
+package com.taoyuanx.littlepdf.template;
 
 import java.io.OutputStream;
 import java.util.Map;

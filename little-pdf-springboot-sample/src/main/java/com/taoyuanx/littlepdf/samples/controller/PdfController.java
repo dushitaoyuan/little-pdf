@@ -2,7 +2,7 @@ package com.taoyuanx.littlepdf.samples.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.taoyuanx.littlepdf.template.html2pdf.LittlePdfTemplateRender;
+import com.taoyuanx.littlepdf.template.LittlePdfTemplateRender;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
