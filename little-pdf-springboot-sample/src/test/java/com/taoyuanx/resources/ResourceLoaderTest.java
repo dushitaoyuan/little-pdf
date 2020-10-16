@@ -5,12 +5,14 @@ import com.deepoove.poi.data.NumbericRenderData;
 import com.deepoove.poi.data.TextRenderData;
 import com.deepoove.poi.data.style.Style;
 import com.deepoove.poi.data.style.StyleBuilder;
+import com.taoyuanx.littlepdf.sign.Itext5PdfSign;
 import com.taoyuanx.littlepdf.template.html.FreeMarkerHtmlRender;
 import com.taoyuanx.littlepdf.template.html.ThymeleafHtmlRender;
 import com.taoyuanx.littlepdf.template.html2pdf.Itext5PdfRenderConfig;
 import com.taoyuanx.littlepdf.template.impl.TemplateRender;
 import com.taoyuanx.littlepdf.template.word.WordTemplateRender;
 import com.taoyuanx.littlepdf.template.word.WordToPdfUtil;
+import org.junit.Before;
 import org.junit.Test;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.templatemode.TemplateMode;
@@ -215,6 +217,32 @@ public class ResourceLoaderTest {
         map.put("now_date", "2020年10月12日");
         String wordTemplatePath = "A:\\work\\code\\little-pdf\\little-pdf-springboot-sample\\src\\main\\resources\\pdftemplate\\demo_template.docx";
         thymeleafRender.render(wordTemplatePath, map, new FileOutputStream("d://word.pdf"));
+    }
+    private Itext5PdfSign itext5PdfSign;
+    @Before
+    public void before() {
+
+        String signername = "个人出入境管理系统";
+        String reason = "出入境管理中心";
+        String location = "xxx互联网信息办公室";
+        String password = "123456";
+        String p12Path =  "xxclient.p12";
+        String chapterPath ="xxx_stamp.png";
+        String field_name = "xxx_signField";
+
+        Itext5PdfSign.SignConfig signConfig = new Itext5PdfSign.SignConfig();
+        signConfig.setSignP12Path(p12Path);
+        signConfig.setSignP12Password(password);
+        signConfig.setChapterImgPath(chapterPath);
+        signConfig.setSignername(signername);
+        signConfig.setReason(reason);
+
+        signConfig.setLocation(location);
+        signConfig.setSignFiledName(field_name);
+        signConfig.setSignKeyWord("信息办公室");
+        itext5PdfSign = new Itext5PdfSign(signConfig);
+
+
     }
 
 }
