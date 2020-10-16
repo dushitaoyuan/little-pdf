@@ -1,7 +1,8 @@
-package com.taoyuanx.littlepdf.template.html.impl;
+package com.taoyuanx.littlepdf.template.html;
 
 import com.taoyuanx.littlepdf.exception.PdfException;
-import com.taoyuanx.littlepdf.template.html.IHtmlRender;
+import com.taoyuanx.littlepdf.template.AbstractRender;
+import com.taoyuanx.littlepdf.template.IRender;
 import freemarker.cache.FileTemplateLoader;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -16,7 +17,7 @@ import java.util.Map;
  * @date 2019/9/910:11
  * @desc: freemarker html render
  */
-public class FreeMarkerHtmlRender extends AbstractHtmlRender implements IHtmlRender {
+public class FreeMarkerHtmlRender extends AbstractRender implements IRender {
     private Configuration configuration;
     private static final String DEFAULT_SUFFIX = "ftl";
 

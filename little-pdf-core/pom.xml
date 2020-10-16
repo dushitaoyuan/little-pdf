@@ -74,9 +74,47 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.8</version>
-            <scope>provided</scope>
+           <version>1.18.12</version>
         </dependency>
+        <!--poi word模板生成-->
+         <dependency>
+          <groupId>com.deepoove</groupId>
+          <artifactId>poi-tl</artifactId>
+          <version>1.8.2</version>
+        </dependency>
+          <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-scratchpad</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+            <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-schemas</artifactId>
+            <version>4.1.2</version>
+        </dependency>
+        <!--word 转pdf-->
+              <dependency>
+            <groupId>org.jodconverter</groupId>
+            <artifactId>jodconverter-local</artifactId>
+            <version>4.3.0</version>
+        </dependency>
+
+          <dependency>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcmail-jdk15on</artifactId>
+                    <version>1.66</version>
+                </dependency>
+
     </dependencies>
 
 

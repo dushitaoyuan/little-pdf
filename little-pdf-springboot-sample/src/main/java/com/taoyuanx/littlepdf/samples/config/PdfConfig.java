@@ -1,11 +1,10 @@
 package com.taoyuanx.littlepdf.samples.config;
 
-import com.taoyuanx.littlepdf.template.html.impl.TemplateHtmlRender;
+import com.taoyuanx.littlepdf.template.html.ThymeleafHtmlRender;
 import com.taoyuanx.littlepdf.template.html2pdf.Itext5PdfRenderConfig;
-import com.taoyuanx.littlepdf.template.html2pdf.LittlePdfTemplateRender;
-import com.taoyuanx.littlepdf.template.html2pdf.impl.ThymeleafRender;
+import com.taoyuanx.littlepdf.template.LittlePdfTemplateRender;
+import com.taoyuanx.littlepdf.template.impl.TemplateRender;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,11 +38,11 @@ public class PdfConfig {
         resolver.setPrefix("pdftemplate/");
         TemplateEngine templateEngine = new TemplateEngine();
         templateEngine.addTemplateResolver(resolver);
-        TemplateHtmlRender templateHtmlRender = new TemplateHtmlRender(templateEngine);
-        templateHtmlRender.setSuffix("html");
+        ThymeleafHtmlRender thymeleafHtmlRender = new ThymeleafHtmlRender(templateEngine);
+        thymeleafHtmlRender.setSuffix("html");
         Itext5PdfRenderConfig renderConfig = littlePdfConfig();
-        ThymeleafRender thymeleafRender = new ThymeleafRender(renderConfig);
-        thymeleafRender.addRender(templateHtmlRender);
+        TemplateRender thymeleafRender = new TemplateRender(renderConfig);
+        thymeleafRender.addRender(thymeleafHtmlRender);
         return  thymeleafRender;
     }
 }

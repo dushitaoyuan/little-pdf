@@ -1,6 +1,7 @@
-package com.taoyuanx.littlepdf.template.html.impl;
+package com.taoyuanx.littlepdf.template.html;
 
-import com.taoyuanx.littlepdf.template.html.IHtmlRender;
+import com.taoyuanx.littlepdf.template.AbstractRender;
+import com.taoyuanx.littlepdf.template.IRender;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -9,19 +10,20 @@ import java.util.Map;
 /**
  * @author dushitaoyuan
  * @date 2019/9/821:47
- * @desc:
+ * @desc: Thymeleaf 模板渲染
  */
-public class TemplateHtmlRender extends AbstractHtmlRender implements IHtmlRender {
+public class ThymeleafHtmlRender extends AbstractRender implements IRender {
 
     private TemplateEngine templateEngine;
-    private  static  final String DEFAULT_SUFFIX="html";
-    public TemplateHtmlRender(TemplateEngine templateEngine) {
-        this.suffix=DEFAULT_SUFFIX;
+    private static final String DEFAULT_SUFFIX = "html";
+
+    public ThymeleafHtmlRender(TemplateEngine templateEngine) {
+        this.suffix = DEFAULT_SUFFIX;
         this.templateEngine = templateEngine;
     }
 
-    public TemplateHtmlRender() {
-        this.suffix=DEFAULT_SUFFIX;
+    public ThymeleafHtmlRender() {
+        this.suffix = DEFAULT_SUFFIX;
         this.templateEngine = new TemplateEngine();
     }
 
