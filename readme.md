@@ -1,8 +1,19 @@
 # little-pdf
 ## 项目介绍
 
-littlepdf 是一个基于数据+模板->html->pdf的小型框架,html渲染模板用户可自行配置,内置thymeleaf,freemarker两种实现,实现 IHtmlRender接口即可
+littlepdf 是一个基于数据+模板->html->pdf的小型框架,html渲染模板用户可自行配置,内置thymeleaf,freemarker两种实现,实现 IRender接口即可
+
 使用方式参见:little-pdf-springboot-sample,html渲染成pdf基于itext5+flying-saucer(css1.0,css2.0 支持)
+
+基础模板:
+
+html+css ->pdf  
+
+word(docx)->docx->pdf  
+
+word ->pdf 依赖jodconverter ->apache openoffice或者libreoffice 
+
+
 
 ## 适用场景
 
@@ -13,6 +24,8 @@ littlepdf 是一个基于数据+模板->html->pdf的小型框架,html渲染模�
 具体参见:TemplateLoaderUtil
 
 ## 使用详解
+
+###  pdf生成使用
 
 ```java
 1. 配置
@@ -29,7 +42,7 @@ public class PdfConfig {
     }
     @Bean
     @ConditionalOnBean(value = {Itext5PdfRenderConfig.class})
-    public LittlePdfTemplateRender  littlePdfTemplateRender(){
+    public LittlePdfTemplateRender littlePdfTemplateRender() {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setOrder(1);
         resolver.setCacheable(true);
@@ -39,12 +52,15 @@ public class PdfConfig {
         resolver.setPrefix("pdftemplate/");
         TemplateEngine templateEngine = new TemplateEngine();
         templateEngine.addTemplateResolver(resolver);
-        TemplateHtmlRender templateHtmlRender = new TemplateHtmlRender(templateEngine);
-        templateHtmlRender.setSuffix("html");
+        WordTemplateRender wordTemplateRender = new WordTemplateRender("d://temp/");
+        wordTemplateRender.setSuffix("docx");
+        ThymeleafHtmlRender thymeleafHtmlRender = new ThymeleafHtmlRender(templateEngine);
+        thymeleafHtmlRender.setSuffix("html");
         Itext5PdfRenderConfig renderConfig = littlePdfConfig();
-        ThymeleafRender thymeleafRender = new ThymeleafRender(renderConfig);
-        thymeleafRender.addRender(templateHtmlRender);
-        return  thymeleafRender;
+        TemplateRender thymeleafRender = new TemplateRender(renderConfig);
+        thymeleafRender.addRender(thymeleafHtmlRender);
+        thymeleafRender.addRender(wordTemplateRender);
+        return thymeleafRender;
     }
 }
 
@@ -61,11 +77,56 @@ little.pdf.charset=UTF-8
 参见:com.taoyuanx.littlepdf.template.html2pdf.Itext5PdfRenderConfig
 
 ```
+### pdf 关键词签名使用
+```java
+ @Test
+    public  void signTest() throws Exception {
+        itext5PdfSign.sign(new FileInputStream("d://temp/word.pdf"),new FileOutputStream("d://temp/word_signed.pdf"));
+    }
+    @Before
+    public void before() {
+
+        String signername = "桃源科技有限公司";
+        String reason = "官方承认，不可篡改";
+        String location = "桃源科技有限公司";
+        String password = "123456";
+        String p12Path =  "g://data/client.p12";
+        String chapterPath ="g://data/stamp.png";
+        String field_name = "sign_Field";
+
+        Itext5PdfSign.SignConfig signConfig = new Itext5PdfSign.SignConfig();
+        signConfig.setSignP12Path(p12Path);
+        signConfig.setSignP12Password(password);
+        signConfig.setChapterImgPath(chapterPath);
+        signConfig.setSignername(signername);
+        signConfig.setReason(reason);
+
+        signConfig.setLocation(location);
+        signConfig.setSignFiledName(field_name);
+        signConfig.setSignKeyWord("桃源科技有限公司");
+        itext5PdfSign = new Itext5PdfSign(signConfig);
+
+
+    }
+
+
+// pdf 定位 实现 参见 com.taoyuanx.littlepdf.sign.Itext5PdfSign.KeyWordFinder
+    
+```
+
+
+- html ->pdf 示例
 ![avatar](https://github.com/dushitaoyuan/little-pdf/blob/master/imgs/render1.png)
 
 
 ![avatar](https://github.com/dushitaoyuan/little-pdf/blob/master/imgs/render2.png)
 
+
+- word ->pdf 示例
+![avatar](https://github.com/dushitaoyuan/little-pdf/blob/master/imgs/word.png)
+![avatar](https://github.com/dushitaoyuan/little-pdf/blob/master/imgs/word2.png)
+![avatar](https://github.com/dushitaoyuan/little-pdf/blob/master/imgs/pdf1.png)
+![avatar](https://github.com/dushitaoyuan/little-pdf/blob/master/imgs/pdf2.png)
 
 
 

@@ -12,8 +12,11 @@ import com.itextpdf.text.pdf.parser.TextMarginFinder;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 import com.itextpdf.text.pdf.security.*;
 import com.itextpdf.text.pdf.security.MakeSignature.CryptoStandard;
+import com.taoyuanx.littlepdf.utils.LittlePdfUtil;
 import com.taoyuanx.littlepdf.utils.RSAUtil;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -27,6 +30,7 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.Certificate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
@@ -58,7 +62,7 @@ public class Itext5PdfSign {
             appearance.setReason(signConfig.getReason());
             appearance.setLocation(signConfig.getLocation());
             appearance.setSignatureCreator(signConfig.getSignername());
-            PdfLocationResult locationResult = calcSignLocation(reader);
+            PdfLocationResult locationResult = calcSignLocation(reader, KeyWordFinder.KeyWordMatchType.MATCH_LAST);
             appearance.setVisibleSignature(locationResult.getRectangle(), locationResult.getPageNum(), signConfig.getSignFiledName());
             /**
              * 设定签章图片,签章类别
@@ -219,23 +223,19 @@ public class Itext5PdfSign {
     }
 
 
-    private PdfLocationResult calcSignLocation(PdfReader reader) {
+    private PdfLocationResult calcSignLocation(PdfReader reader, KeyWordFinder.KeyWordMatchType matchType) {
         /**
          * 1. 如果关键字存在,则签章在关键字上
          * 2. 如果关键字不存在 则签章在尾页的右下角
          */
-        List<KeyWordLocation> keyWordLocationList = keyWordLocation(reader, signConfig.getSignKeyWord(), signConfig.getSignKeyWordPageNum());
-        if (!keyWordLocationList.isEmpty()) {
+        KeyWordLocation keyWordLocation = keyWordLocation(reader, signConfig.getSignKeyWord(), signConfig.getSignKeyWordPageNum(), matchType);
+        if (Objects.nonNull(keyWordLocation)) {
             /**
              * 计算规则:
              * 1. 由于获取的关键词文件块宽高过于夸张,所以先计算关键词文本块矩形左下角坐标( keyWordLocation.getUrx(),keyWordLocation.getUry()-文本块高度)
              * 2. 然后将 文本块左下角坐标作为签章矩形的中心点,然后计算签章域的左小角右上角坐标
              */
-            KeyWordLocation keyWordLocation = keyWordLocationList.get(0);
-
             float keyWordTextBlockHeight = keyWordLocation.getKeyWordTextBlockHeight();
-
-
             //右上角坐标
             float urx = keyWordLocation.getUrx() + signConfig.getStampWidth() / 2;
             float ury = keyWordLocation.getUry() - keyWordTextBlockHeight + signConfig.getStampHeight() / 2;
@@ -270,7 +270,7 @@ public class Itext5PdfSign {
      * @param keyWordPageNum 关键词所在页码
      * @return
      */
-    private List<KeyWordLocation> keyWordLocation(PdfReader pdfReader, String keyWord, Integer keyWordPageNum) {
+    private KeyWordLocation keyWordLocation(PdfReader pdfReader, String keyWord, Integer keyWordPageNum, KeyWordFinder.KeyWordMatchType matchType) {
         List<KeyWordLocation> keyWordLocationList = Lists.newArrayList();
         try {
             int pageSize = pdfReader.getNumberOfPages();
@@ -283,26 +283,7 @@ public class Itext5PdfSign {
             }
             pageStream.forEach(pageNum -> {
                 try {
-                    pdfReaderContentParser.processContent(pageNum, new TextMarginFinder() {
-                        @Override
-                        public void renderText(TextRenderInfo renderInfo) {
-                            super.renderText(renderInfo);
-                            String text = renderInfo.getText();
-                            //查找到关键词,并设置关键词位置
-                            if (Objects.nonNull(text) && text.contains(keyWord)) {
-                                KeyWordLocation keyWordLocation = new KeyWordLocation();
-                                keyWordLocation.setKeyWordTextBlockHeight(this.getHeight());
-                                keyWordLocation.setKeyWordTextBlockWidth(this.getWidth());
-                                keyWordLocation.setLlx(this.getLlx());
-                                keyWordLocation.setLly(this.getLly());
-                                keyWordLocation.setUrx(this.getUrx());
-                                keyWordLocation.setUry(this.getUry());
-                                keyWordLocation.setText(text);
-                                keyWordLocation.setPageNum(pageNum);
-                                keyWordLocationList.add(keyWordLocation);
-                            }
-                        }
-                    });
+                    pdfReaderContentParser.processContent(pageNum, new KeyWordFinder(keyWord, pageNum, keyWordLocationList));
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -311,7 +292,125 @@ public class Itext5PdfSign {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return keyWordLocationList;
+        if (keyWordLocationList.isEmpty() || keyWordLocationList.size() == 1) {
+            return keyWordLocationList.get(0);
+        }
+        KeyWordLocation keyWordLocation = null;
+        switch (matchType) {
+            case MATCH_LAST:
+                keyWordLocation = LittlePdfUtil.getLast(keyWordLocationList);
+                break;
+            case MATCH_FIRST:
+                keyWordLocation = keyWordLocationList.get(0);
+                break;
+
+        }
+        if (keyWordLocation.isFullMatch()) {
+            return keyWordLocation;
+        } else if (Objects.nonNull(keyWordLocation.getCharLocationList())) {
+            /**
+             * 如果关键词被分拆,则返回中间字符的坐标
+             */
+            List<KeyWordLocation> charLocationList = keyWordLocation.getCharLocationList();
+            int mid = charLocationList.size() / 2;
+            KeyWordLocation midChar = charLocationList.get(mid);
+            keyWordLocation.setLlx(midChar.getLlx());
+            keyWordLocation.setLly(midChar.getLly());
+            keyWordLocation.setUrx(midChar.getUrx());
+            keyWordLocation.setUry(midChar.getUry());
+            keyWordLocation.setFullMatch(false);
+            keyWordLocation.setKeyWordTextBlockHeight(midChar.getKeyWordTextBlockHeight());
+            keyWordLocation.setKeyWordTextBlockWidth(midChar.getKeyWordTextBlockWidth());
+            return keyWordLocation;
+        }
+
+        return keyWordLocation;
+    }
+
+
+    public static class KeyWordFinder extends TextMarginFinder {
+        @Getter
+        @Setter
+        private String keyWord;
+        @Getter
+        @Setter
+        private Integer pageNum;
+        @Getter
+        @Setter
+        private List<KeyWordLocation> keyWordLocationList;
+        private boolean firstFind;
+        private Integer keyWordCharMatchCount = 0;
+
+        public KeyWordFinder(String keyWord, Integer pageNum, List<KeyWordLocation> keyWordLocationList) {
+            this.keyWord = keyWord;
+            this.pageNum = pageNum;
+            this.keyWordLocationList = keyWordLocationList;
+        }
+
+        @Override
+        public void renderText(TextRenderInfo renderInfo) {
+            super.renderText(renderInfo);
+            String text = renderInfo.getText();
+            System.out.println(text + "\t width:" + this.getWidth() + "\theight:" + this.getHeight());
+            //查找到关键词,并设置关键词位置
+            if (LittlePdfUtil.isNotEmpty(text)) {
+                if (text.contains(keyWord)) {
+                    keyWordLocationList.add(toKeyWordLocation(text, true));
+                    return;
+                }
+                if (!firstFind && keyWord.startsWith(text)) {
+                    firstFind = true;
+                    keyWordCharMatchCount = text.length();
+                    KeyWordLocation keyWordLocation = toKeyWordLocation(text, false);
+                    List<KeyWordLocation> charLocationList = new ArrayList<>();
+                    charLocationList.add(keyWordLocation);
+                    keyWordLocation.setCharLocationList(charLocationList);
+                    keyWordLocationList.add(keyWordLocation);
+                    return;
+                }
+                if (firstFind) {
+                    String lastWaitMatchKeyWord = keyWord.substring(keyWordCharMatchCount);
+                    if (keyWordCharMatchCount >= keyWord.length()) {
+                        //匹配结束
+                        firstFind = false;
+                    } else if (lastWaitMatchKeyWord.startsWith(text)) {
+                        //继续匹配中
+                        keyWordCharMatchCount += text.length();
+                        List<KeyWordLocation> charLocationList = LittlePdfUtil.getLast(keyWordLocationList).getCharLocationList();
+                        charLocationList.add(toKeyWordLocation(text, false));
+                    } else {
+                        firstFind = false;
+                        if (keyWordCharMatchCount > 0) {
+                            List<KeyWordLocation> charLocationList = LittlePdfUtil.getLast(keyWordLocationList).getCharLocationList();
+                            //删除不完全匹配
+                            LittlePdfUtil.removeLastList(charLocationList, keyWordCharMatchCount);
+                        }
+                    }
+
+                }
+
+
+            }
+        }
+
+        public static enum KeyWordMatchType {
+            MATCH_LAST,
+            MATCH_FIRST;
+        }
+
+        private KeyWordLocation toKeyWordLocation(String text, boolean fullMath) {
+            KeyWordLocation keyWordLocation = new KeyWordLocation();
+            keyWordLocation.setKeyWordTextBlockHeight(this.getHeight());
+            keyWordLocation.setKeyWordTextBlockWidth(this.getWidth());
+            keyWordLocation.setLlx(this.getLlx());
+            keyWordLocation.setLly(this.getLly());
+            keyWordLocation.setUrx(this.getUrx());
+            keyWordLocation.setUry(this.getUry());
+            keyWordLocation.setText(text);
+            keyWordLocation.setPageNum(pageNum);
+            keyWordLocation.setFullMatch(fullMath);
+            return keyWordLocation;
+        }
     }
 
     /**
@@ -342,6 +441,15 @@ public class Itext5PdfSign {
          */
         private float keyWordTextBlockWidth;
         private float keyWordTextBlockHeight;
+        /**
+         * 是否完全匹配
+         */
+        private boolean isFullMatch;
+        /**
+         * 关键词被解析成多个TextRenderInfo
+         */
+        private List<KeyWordLocation> charLocationList;
+
 
     }
 

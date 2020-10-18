@@ -16,6 +16,7 @@ public final class RSAUtil {
     public static final String KEYSTORE_TYPE_JKS = "JKS";
 
     public static KeyStore getKeyStore(String filePath, String keyPassword) throws Exception {
+
         KeyStore keyStore = KeyStore.getInstance(guessKeyStoreType(filePath));
         FileInputStream file = new FileInputStream(new File(filePath));
         keyStore.load(file, keyPassword.toCharArray());

@@ -20,6 +20,7 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -213,22 +214,27 @@ public class ResourceLoaderTest {
         map.put("auditResult", "通过");
         map.put("agent", "桃源");
         map.put("agentPhone", "13717886659");
-        map.put("auditOrg", "xxx信息办公室");
+        map.put("auditOrg", "桃源科技有限公司");
         map.put("now_date", "2020年10月12日");
-        String wordTemplatePath = "A:\\work\\code\\little-pdf\\little-pdf-springboot-sample\\src\\main\\resources\\pdftemplate\\demo_template.docx";
+        String wordTemplatePath = "G:\\devwork\\iwork\\little-pdf\\little-pdf-springboot-sample\\src\\main\\resources\\pdftemplate\\demo_template.docx";
         thymeleafRender.render(wordTemplatePath, map, new FileOutputStream("d://word.pdf"));
+
     }
     private Itext5PdfSign itext5PdfSign;
+    @Test
+    public  void signTest() throws Exception {
+        itext5PdfSign.sign(new FileInputStream("d://temp/word.pdf"),new FileOutputStream("d://temp/word_signed.pdf"));
+    }
     @Before
     public void before() {
 
-        String signername = "个人出入境管理系统";
-        String reason = "出入境管理中心";
-        String location = "xxx互联网信息办公室";
+        String signername = "桃源科技有限公司";
+        String reason = "官方承认，不可篡改";
+        String location = "桃源科技有限公司";
         String password = "123456";
-        String p12Path =  "xxclient.p12";
-        String chapterPath ="xxx_stamp.png";
-        String field_name = "xxx_signField";
+        String p12Path =  "g://data/client.p12";
+        String chapterPath ="g://data/stamp.png";
+        String field_name = "sign_Field";
 
         Itext5PdfSign.SignConfig signConfig = new Itext5PdfSign.SignConfig();
         signConfig.setSignP12Path(p12Path);
@@ -239,7 +245,7 @@ public class ResourceLoaderTest {
 
         signConfig.setLocation(location);
         signConfig.setSignFiledName(field_name);
-        signConfig.setSignKeyWord("信息办公室");
+        signConfig.setSignKeyWord("桃源科技有限公司");
         itext5PdfSign = new Itext5PdfSign(signConfig);
 
 

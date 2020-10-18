@@ -22,9 +22,7 @@ import com.taoyuanx.littlepdf.template.html2pdf.Itext5PdfRenderConfig;
 import com.taoyuanx.littlepdf.template.word.WordToPdfUtil;
 import com.taoyuanx.littlepdf.utils.FileUtil;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -62,14 +60,14 @@ public class TemplateRender implements LittlePdfTemplateRender {
             String renderResult = render.render(template, renderData);
             tempFileDelete = renderResult;
             if (fileSuffix.equalsIgnoreCase("docx")) {
-                WordToPdfUtil.word2Pdf(new FileInputStream(renderResult), outputStream);
+                WordToPdfUtil.word2Pdf( new FileInputStream(renderResult), outputStream);
             } else {
                 Html2PdfUtil.html2Pdf(renderResult, outputStream, renderConfig);
             }
         } catch (Exception e) {
             throw new PdfException("渲染异常", e);
         } finally {
-            FileUtil.deleteQuietly(tempFileDelete);
+           FileUtil.deleteQuietly(tempFileDelete);
         }
     }
 

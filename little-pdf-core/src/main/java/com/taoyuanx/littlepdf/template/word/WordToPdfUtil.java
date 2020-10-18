@@ -30,6 +30,7 @@ public class WordToPdfUtil {
                     .execute();
         } finally {
             OfficeUtils.stopQuietly(officeManager);
+            wordPath.close();
         }
     }
 }
