@@ -40,7 +40,7 @@ public class PdfConfig {
         resolver.setPrefix("pdftemplate/");
         TemplateEngine templateEngine = new TemplateEngine();
         templateEngine.addTemplateResolver(resolver);
-        WordTemplateRender wordTemplateRender = new WordTemplateRender("d://temp/");
+        WordTemplateRender wordTemplateRender = new WordTemplateRender("classpath:pdftemplate/","d://temp/");
         wordTemplateRender.setSuffix("docx");
         ThymeleafHtmlRender thymeleafHtmlRender = new ThymeleafHtmlRender(templateEngine);
         thymeleafHtmlRender.setSuffix("html");

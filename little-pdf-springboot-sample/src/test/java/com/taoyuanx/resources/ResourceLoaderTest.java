@@ -167,10 +167,9 @@ public class ResourceLoaderTest {
         /**
          * word模板测试
          */
-        WordTemplateRender wordTemplateRender = new WordTemplateRender("d://temp/");
+        WordTemplateRender wordTemplateRender = new WordTemplateRender("classpath:pdftemplate/", "d://temp/");
         wordTemplateRender.setSuffix("docx");
         Itext5PdfRenderConfig renderConfig = new Itext5PdfRenderConfig();
-        renderConfig.setFontsDir("G:\\github\\pdf_research\\doc-render\\little-pdf\\src\\main\\resources\\fonts");
         TemplateRender thymeleafRender = new TemplateRender(renderConfig);
         thymeleafRender.addRender(wordTemplateRender);
         Map<String, Object> map = new HashMap<>();
@@ -216,15 +215,18 @@ public class ResourceLoaderTest {
         map.put("agentPhone", "13717886659");
         map.put("auditOrg", "桃源科技有限公司");
         map.put("now_date", "2020年10月12日");
-        String wordTemplatePath = "G:\\devwork\\iwork\\little-pdf\\little-pdf-springboot-sample\\src\\main\\resources\\pdftemplate\\demo_template.docx";
-        thymeleafRender.render(wordTemplatePath, map, new FileOutputStream("d://word.pdf"));
+        String wordTemplatePath = "demo_template.docx";
+        thymeleafRender.render(wordTemplatePath, map, new FileOutputStream("d://temp/word.pdf"));
 
     }
+
     private Itext5PdfSign itext5PdfSign;
+
     @Test
-    public  void signTest() throws Exception {
-        itext5PdfSign.sign(new FileInputStream("d://temp/word.pdf"),new FileOutputStream("d://temp/word_signed.pdf"));
+    public void signTest() throws Exception {
+        itext5PdfSign.sign(new FileInputStream("d://temp/word.pdf"), new FileOutputStream("d://temp/word_signed.pdf"));
     }
+
     @Before
     public void before() {
 
@@ -232,8 +234,8 @@ public class ResourceLoaderTest {
         String reason = "官方承认，不可篡改";
         String location = "桃源科技有限公司";
         String password = "123456";
-        String p12Path =  "g://data/client.p12";
-        String chapterPath ="g://data/stamp.png";
+        String p12Path = "g://data/client.p12";
+        String chapterPath = "g://data/stamp.png";
         String field_name = "sign_Field";
 
         Itext5PdfSign.SignConfig signConfig = new Itext5PdfSign.SignConfig();

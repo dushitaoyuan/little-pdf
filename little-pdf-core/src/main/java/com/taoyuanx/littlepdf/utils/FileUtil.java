@@ -1,6 +1,9 @@
 package com.taoyuanx.littlepdf.utils;
 
+import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
+import java.util.Objects;
 
 /**
  * @author dushitaoyuan
@@ -12,7 +15,15 @@ public class FileUtil {
         int flag_index = filePath.lastIndexOf(".");
         return filePath.substring(flag_index + 1);
     }
-
+    public static void close(Closeable cloneable) {
+       if(Objects.nonNull(cloneable)){
+           try {
+               cloneable.close();
+           } catch (IOException e) {
+               e.printStackTrace();
+           }
+       }
+    }
     public static boolean deleteQuietly(String filePath) {
         if (filePath == null) {
             return false;

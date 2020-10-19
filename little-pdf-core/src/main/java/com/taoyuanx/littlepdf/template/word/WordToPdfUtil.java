@@ -31,6 +31,7 @@ public class WordToPdfUtil {
         } finally {
             OfficeUtils.stopQuietly(officeManager);
             wordPath.close();
+            pdfOutputStream.close();
         }
     }
 }

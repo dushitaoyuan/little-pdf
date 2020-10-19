@@ -292,18 +292,25 @@ public class Itext5PdfSign {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        if (keyWordLocationList.isEmpty() || keyWordLocationList.size() == 1) {
-            return keyWordLocationList.get(0);
-        }
         KeyWordLocation keyWordLocation = null;
-        switch (matchType) {
-            case MATCH_LAST:
-                keyWordLocation = LittlePdfUtil.getLast(keyWordLocationList);
-                break;
-            case MATCH_FIRST:
-                keyWordLocation = keyWordLocationList.get(0);
-                break;
+        if (keyWordLocationList.isEmpty()) {
+            return null;
+        }
+        if (keyWordLocationList.size() == 1) {
+            keyWordLocation = keyWordLocationList.get(0);
+        } else {
+            switch (matchType) {
+                case MATCH_LAST:
+                    keyWordLocation = LittlePdfUtil.getLast(keyWordLocationList);
+                    break;
+                case MATCH_FIRST:
+                    keyWordLocation = keyWordLocationList.get(0);
+                    break;
+                default:
+                    keyWordLocation = LittlePdfUtil.getLast(keyWordLocationList);
+                    break;
 
+            }
         }
         if (keyWordLocation.isFullMatch()) {
             return keyWordLocation;
@@ -351,7 +358,7 @@ public class Itext5PdfSign {
         public void renderText(TextRenderInfo renderInfo) {
             super.renderText(renderInfo);
             String text = renderInfo.getText();
-            System.out.println(text + "\t width:" + this.getWidth() + "\theight:" + this.getHeight());
+            LOG.debug("pdf文本:[{}] 文本宽度{},文本高度", text, this.getWidth(), this.getHeight());
             //查找到关键词,并设置关键词位置
             if (LittlePdfUtil.isNotEmpty(text)) {
                 if (text.contains(keyWord)) {
