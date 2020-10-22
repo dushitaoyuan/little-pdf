@@ -1,7 +1,7 @@
 # little-pdf
 ## 项目介绍
 
-littlepdf 是一个基于数据+模板->html->pdf的小型框架,html渲染模板用户可自行配置,内置thymeleaf,freemarker两种实现,实现 IRender接口即可
+littlepdf 是一个基于数据+模板->html->pdf的小型框架,html渲染模板用户可自行配置,内置thymeleaf,freemarker,word三种实现,实现 IRender接口即可
 
 使用方式参见:little-pdf-springboot-sample,html渲染成pdf基于itext5+flying-saucer(css1.0,css2.0 支持)
 
