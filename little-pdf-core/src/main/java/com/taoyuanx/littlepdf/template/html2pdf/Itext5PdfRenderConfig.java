@@ -32,11 +32,16 @@ public class Itext5PdfRenderConfig {
      * defaultFont 默认字体
      * resourcesDir 资源路径(css,img)
      * charset 字符编码
+     * html2PdfType html转pdf实现,itext5或jodconverter(openoffice或libreoffice)
      */
     private String fontsDir;
     private String defaultFont;
     private String resourcesDir;
     private String charset="UTF-8";
+    private String html2PdfType=HTML2PDF_TYPE_ITEXT5;
+    public static  final String HTML2PDF_TYPE_ITEXT5="itext5";
+    public static  final String HTML2PDF_TYPE_JOD_CONVERTER="jodconverter";
+
 
     private static final Logger LOG = LoggerFactory.getLogger(Itext5PdfRenderConfig.class);
 

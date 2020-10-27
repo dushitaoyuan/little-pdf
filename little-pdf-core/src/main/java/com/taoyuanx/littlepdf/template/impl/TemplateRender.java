@@ -1,29 +1,16 @@
 package com.taoyuanx.littlepdf.template.impl;
 
-import com.itextpdf.text.Document;
-import com.itextpdf.text.PageSize;
-import com.itextpdf.text.pdf.PdfWriter;
-import com.itextpdf.tool.xml.Pipeline;
-import com.itextpdf.tool.xml.XMLWorker;
-import com.itextpdf.tool.xml.XMLWorkerHelper;
-import com.itextpdf.tool.xml.html.CssAppliersImpl;
-import com.itextpdf.tool.xml.html.Tags;
-import com.itextpdf.tool.xml.parser.XMLParser;
-import com.itextpdf.tool.xml.pipeline.css.CSSResolver;
-import com.itextpdf.tool.xml.pipeline.css.CssResolverPipeline;
-import com.itextpdf.tool.xml.pipeline.end.PdfWriterPipeline;
-import com.itextpdf.tool.xml.pipeline.html.HtmlPipeline;
-import com.itextpdf.tool.xml.pipeline.html.HtmlPipelineContext;
 import com.taoyuanx.littlepdf.exception.PdfException;
 import com.taoyuanx.littlepdf.template.IRender;
 import com.taoyuanx.littlepdf.template.LittlePdfTemplateRender;
 import com.taoyuanx.littlepdf.template.html2pdf.Html2PdfUtil;
 import com.taoyuanx.littlepdf.template.html2pdf.Itext5PdfRenderConfig;
-import com.taoyuanx.littlepdf.template.word.WordToPdfUtil;
+import com.taoyuanx.littlepdf.template.word.OfficePdfUtil;
 import com.taoyuanx.littlepdf.utils.FileUtil;
+import org.jodconverter.core.document.DefaultDocumentFormatRegistry;
 
-import java.io.*;
-import java.nio.charset.Charset;
+import java.io.FileInputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -59,15 +46,22 @@ public class TemplateRender implements LittlePdfTemplateRender {
             IRender render = choseRender(fileSuffix);
             String renderResult = render.render(template, renderData);
             tempFileDelete = renderResult;
-            if (fileSuffix.equalsIgnoreCase("docx")) {
-                WordToPdfUtil.word2Pdf( new FileInputStream(renderResult), outputStream);
-            } else {
+            if (fileSuffix.equals("docx")) {
+                OfficePdfUtil.toPdf(new FileInputStream(renderResult), DefaultDocumentFormatRegistry.DOCX, outputStream);
+                return;
+            } else if (fileSuffix.equals("html")) {
                 Html2PdfUtil.html2Pdf(renderResult, outputStream, renderConfig);
+                return;
+
             }
+            throw new PdfException(fileSuffix + "不支持");
         } catch (Exception e) {
+            if (e instanceof PdfException) {
+                throw (PdfException) e;
+            }
             throw new PdfException("渲染异常", e);
         } finally {
-           FileUtil.deleteQuietly(tempFileDelete);
+            FileUtil.deleteQuietly(tempFileDelete);
         }
     }
 

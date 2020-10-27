@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html   xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html" LANG="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>完整html转pdf模板</title>
+
+</head>
+
+<!-- itext 中文 需指定字体 -->
+
+<body LANG="zh-CN" style="font-family: simhei;">
+<p style="line-height: 1.75em;font-size: 24px;">
+    报告编号：<th:block th:text="${reportCode}"></th:block>
+</p>
+<p style="text-align: center;font-size: 24px;">
+    xxx通知书
+</p>
+<p style="line-height: 1.75em;font-size: 18px;">
+    <th:block th:text="${companyName}"></th:block>：
+</p>
+<p style="text-indent: 2em;line-height: 1.75em;font-size: 18px;">
+    你单位于 <span style="text-decoration: underline" th:text="${submit_date}">2020年10月27日</span> 提交的xxxx相关材料，依据《xxxx办法》规定，经评估，存在以下问题或风险:
+</p>
+<th:block  th:each="item,stat : ${reasonList}">
+
+<p style="text-indent: 2em;line-height: 1.75em;font-size: 18px;" th:text="${stat.count}+'.'+${item}">
+原因列表
+</p>
+</th:block>
+<p style="text-indent: 2em;line-height: 1.75em;font-size: 18px;">
+    特此通知。
+</p>
+<p style="text-indent: 2em;line-height: 1.75em;font-size: 18px;">
+    经办人：<th:block th:text="${agent}"></th:block>
+</p>
+<p style="text-indent: 2em;line-height: 1.75em;font-size: 18px;">
+    联系电话：<th:block th:text="${agentPhone}"></th:block>
+</p>
+<p style="line-height: 2em;">
+    <br/>
+</p>
+<p style="text-align: right;line-height: 1.75em;font-size: 18px;">
+    <th:block th:text="${auditOrg}"></th:block>
+</p>
+<p style="text-align: right; line-height: 1.75em; font-size: 18px;">
+    <th:block th:text="${now_date}"></th:block>
+</p>
+</body>
+</html>

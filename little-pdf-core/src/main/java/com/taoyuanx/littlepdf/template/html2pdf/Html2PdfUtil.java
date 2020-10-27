@@ -14,6 +14,8 @@ import com.itextpdf.tool.xml.pipeline.css.CssResolverPipeline;
 import com.itextpdf.tool.xml.pipeline.end.PdfWriterPipeline;
 import com.itextpdf.tool.xml.pipeline.html.HtmlPipeline;
 import com.itextpdf.tool.xml.pipeline.html.HtmlPipelineContext;
+import com.taoyuanx.littlepdf.template.word.OfficePdfUtil;
+import org.jodconverter.core.document.DefaultDocumentFormatRegistry;
 
 import java.io.ByteArrayInputStream;
 import java.io.OutputStream;
@@ -25,25 +27,40 @@ import java.nio.charset.Charset;
  * @date 2020/10/16
  */
 public class Html2PdfUtil {
-    public static void html2Pdf(String html, OutputStream out,Itext5PdfRenderConfig renderConfig) throws Exception {
-        Charset charset = renderConfig.getCharset() == null ? Charset.defaultCharset() : Charset.forName(renderConfig.getCharset());
-        Document document = new Document(PageSize.A4);
-        PdfWriter writer = PdfWriter.getInstance(document, out);
-        document.open();
-        // 字体处理
-        HtmlPipelineContext htmlContext = new HtmlPipelineContext(new CssAppliersImpl(renderConfig.getFontProvider()));
-        // img图片加载
-        htmlContext.setImageProvider(renderConfig.getImageProvider());
-        htmlContext.setAcceptUnknown(true).autoBookmark(true).setTagFactory(Tags.getHtmlTagProcessorFactory());
-        // css加载
-        CSSResolver cssResolver = XMLWorkerHelper.getInstance().getDefaultCssResolver(true);
-        cssResolver.setFileRetrieve(renderConfig.getFileRetrieve());
+    public static void html2Pdf(String html, OutputStream out, Itext5PdfRenderConfig renderConfig) throws Exception {
+        try {
+            /**
+             * itext 转pdf
+             */
+            if (renderConfig.getHtml2PdfType().equals(Itext5PdfRenderConfig.HTML2PDF_TYPE_ITEXT5)) {
+                Charset charset = renderConfig.getCharset() == null ? Charset.defaultCharset() : Charset.forName(renderConfig.getCharset());
+                Document document = new Document(PageSize.A4);
+                PdfWriter writer = PdfWriter.getInstance(document, out);
+                document.open();
+                // 字体处理
+                HtmlPipelineContext htmlContext = new HtmlPipelineContext(new CssAppliersImpl(renderConfig.getFontProvider()));
+                // img图片加载
+                htmlContext.setImageProvider(renderConfig.getImageProvider());
+                htmlContext.setAcceptUnknown(true).autoBookmark(true).setTagFactory(Tags.getHtmlTagProcessorFactory());
+                // css加载
+                CSSResolver cssResolver = XMLWorkerHelper.getInstance().getDefaultCssResolver(true);
+                cssResolver.setFileRetrieve(renderConfig.getFileRetrieve());
 
-        HtmlPipeline htmlPipeline = new HtmlPipeline(htmlContext, new PdfWriterPipeline(document, writer));
-        Pipeline<?> pipeline = new CssResolverPipeline(cssResolver, htmlPipeline);
-        XMLWorker worker = new XMLWorker(pipeline, true);
-        XMLParser parser = new XMLParser(true, worker, charset);
-        parser.parse(new ByteArrayInputStream(html.getBytes()), charset);
-        document.close();
+                HtmlPipeline htmlPipeline = new HtmlPipeline(htmlContext, new PdfWriterPipeline(document, writer));
+                Pipeline<?> pipeline = new CssResolverPipeline(cssResolver, htmlPipeline);
+                XMLWorker worker = new XMLWorker(pipeline, true);
+                XMLParser parser = new XMLParser(true, worker, charset);
+                parser.parse(new ByteArrayInputStream(html.getBytes()), charset);
+                document.close();
+            }
+            /**
+             * jodConverter 转pdf
+             */
+            if (renderConfig.getHtml2PdfType().equals(Itext5PdfRenderConfig.HTML2PDF_TYPE_JOD_CONVERTER)) {
+                OfficePdfUtil.toPdf(new ByteArrayInputStream(html.getBytes()), DefaultDocumentFormatRegistry.HTML, out);
+            }
+        } finally {
+            out.close();
+        }
     }
 }

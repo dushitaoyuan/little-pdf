@@ -232,18 +232,38 @@ public class Itext5PdfSign {
         if (Objects.nonNull(keyWordLocation)) {
             /**
              * 计算规则:
-             * 1. 由于获取的关键词文件块宽高过于夸张,所以先计算关键词文本块矩形左下角坐标( keyWordLocation.getUrx(),keyWordLocation.getUry()-文本块高度)
-             * 2. 然后将 文本块左下角坐标作为签章矩形的中心点,然后计算签章域的左小角右上角坐标
+             * 1. 由于获取的关键词文件块宽高过于夸张,所以先计算关键词文本块矩形右下角坐标( keyWordLocation.getUrx(),keyWordLocation.getUry()-文本块高度)
+             * 2. 然后将 文本块右下角坐标作为签章矩形的中心点,然后计算签章域的左下角右上角坐标
+             * 3.签章域超出pdf页宽高,并做溢出处理
              */
             float keyWordTextBlockHeight = keyWordLocation.getKeyWordTextBlockHeight();
-            //右上角坐标
-            float urx = keyWordLocation.getUrx() + signConfig.getStampWidth() / 2;
-            float ury = keyWordLocation.getUry() - keyWordTextBlockHeight + signConfig.getStampHeight() / 2;
-            //左下角坐标
-            float llx = urx - signConfig.getStampWidth();
-            float lly = ury - signConfig.getStampHeight();
+            /**
+             * 关键字右下角坐标
+             */
+            float keyWordLrx = keyWordLocation.getUrx();
+            float keyWordLry = keyWordLocation.getUry() - keyWordTextBlockHeight;
+
+            //签章域左下角坐标
+            float llx = keyWordLrx - signConfig.getStampWidth() / 2;
+            float lly = keyWordLry - signConfig.getStampHeight() / 2;
+            /**
+             * 横纵坐标向溢出处理
+             */
+            Rectangle pageSize = reader.getPageSize(keyWordLocation.getPageNum());
+            if (llx + signConfig.getStampWidth() > pageSize.getWidth()) {
+                llx = pageSize.getWidth() - signConfig.getStampWidth();
+            }
+            if (lly < 0) {
+                llx = 0;
+            }
+            //签章域右上角坐标
+            float urx = llx + signConfig.getStampWidth();
+            float ury = lly + signConfig.getStampHeight();
+
+
             Rectangle rectangle = new Rectangle(llx, lly, urx, ury);
-            LOG.debug("查找到关键词[{}]位置,坐标为", keyWordLocation.getText(), keyWordLocation);
+
+            LOG.debug("查找到关键词[{}]位置,坐标为{}", keyWordLocation.getText(), keyWordLocation);
             return new PdfLocationResult(keyWordLocation.getPageNum(), rectangle);
         } else {
             int numberOfPages = reader.getNumberOfPages();

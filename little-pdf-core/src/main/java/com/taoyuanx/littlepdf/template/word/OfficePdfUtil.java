@@ -17,14 +17,14 @@ import java.io.*;
  * 或 LibreOffice    https://www.libreoffice.org/
  */
 
-public class WordToPdfUtil {
-    public static void word2Pdf(InputStream wordPath, OutputStream pdfOutputStream) throws Exception {
+public class OfficePdfUtil {
+    public static void toPdf(InputStream wordPath,DocumentFormat src, OutputStream pdfOutputStream ) throws Exception {
         final LocalOfficeManager officeManager = LocalOfficeManager.install();
         try {
             officeManager.start();
             JodConverter
                     .convert(wordPath)
-                    .as(DefaultDocumentFormatRegistry.DOCX)
+                    .as(src)
                     .to(pdfOutputStream)
                     .as(DefaultDocumentFormatRegistry.PDF)
                     .execute();

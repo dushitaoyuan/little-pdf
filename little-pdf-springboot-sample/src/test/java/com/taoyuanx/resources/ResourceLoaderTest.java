@@ -11,7 +11,6 @@ import com.taoyuanx.littlepdf.template.html.ThymeleafHtmlRender;
 import com.taoyuanx.littlepdf.template.html2pdf.Itext5PdfRenderConfig;
 import com.taoyuanx.littlepdf.template.impl.TemplateRender;
 import com.taoyuanx.littlepdf.template.word.WordTemplateRender;
-import com.taoyuanx.littlepdf.template.word.WordToPdfUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.thymeleaf.TemplateEngine;
@@ -23,10 +22,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author dushitaoyuan
@@ -46,7 +42,7 @@ public class ResourceLoaderTest {
         resolver.setSuffix(".html");
         resolver.setCharacterEncoding("UTF-8");
         resolver.setTemplateMode(TemplateMode.HTML5);
-        resolver.setPrefix("G:\\github\\pdf_research\\doc-render\\little-pdf\\src\\main\\resources\\pdftemplate\\");
+        resolver.setPrefix("A:\\work\\code\\little-pdf\\little-pdf-springboot-sample\\src\\main\\resources\\pdftemplate\\");
         TemplateEngine templateEngine = new TemplateEngine();
         templateEngine.addTemplateResolver(resolver);
         Map<String, Object> map = new HashMap<>();
@@ -63,7 +59,7 @@ public class ResourceLoaderTest {
 
         TemplateRender templateRender = new TemplateRender(renderConfig);
         templateRender.addRender(thymeleafHtmlRender);
-        templateRender.render("thymeleaf.html", map, new FileOutputStream("d://11.pdf"));
+        templateRender.render("demo2.html", map, new FileOutputStream("d://11.pdf"));
 
     }
 
@@ -155,7 +151,7 @@ public class ResourceLoaderTest {
         ThymeleafHtmlRender thymeleafHtmlRender = new ThymeleafHtmlRender(templateEngine);
         thymeleafHtmlRender.setSuffix("html");
         Itext5PdfRenderConfig renderConfig = new Itext5PdfRenderConfig();
-        renderConfig.setFontsDir("G:\\github\\pdf_research\\doc-render\\little-pdf\\src\\main\\resources\\fonts");
+        renderConfig.setFontsDir("A:\\work\\code\\little-pdf\\little-pdf-springboot-sample\\src\\main\\resources\\fonts");
         TemplateRender thymeleafRender = new TemplateRender(renderConfig);
         thymeleafRender.addRender(thymeleafHtmlRender);
         thymeleafRender.render("rent-contract.html", map, new FileOutputStream("d://12.pdf"));
@@ -220,6 +216,59 @@ public class ResourceLoaderTest {
 
     }
 
+    @Test
+    public void htmlPdfTest() throws Exception {
+        ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+        resolver.setOrder(1);
+        resolver.setCacheable(true);
+        resolver.setSuffix(".html");
+        resolver.setCharacterEncoding("UTF-8");
+        resolver.setTemplateMode(TemplateMode.HTML);
+        resolver.setPrefix("pdftemplate/");
+        TemplateEngine templateEngine = new TemplateEngine();
+        templateEngine.addTemplateResolver(resolver);
+        ThymeleafHtmlRender thymeleafHtmlRender = new ThymeleafHtmlRender(templateEngine);
+        thymeleafHtmlRender.setSuffix("html");
+        Itext5PdfRenderConfig renderConfig = new Itext5PdfRenderConfig();
+        renderConfig.setHtml2PdfType(Itext5PdfRenderConfig.HTML2PDF_TYPE_JOD_CONVERTER);
+
+        renderConfig.setFontsDir("A:\\work\\code\\little-pdf\\little-pdf-springboot-sample\\src\\main\\resources\\fonts");
+
+        TemplateRender thymeleafRender = new TemplateRender(renderConfig);
+        thymeleafRender.addRender(thymeleafHtmlRender);
+        /**
+         * html模板测试
+         */
+        Map<String, Object> dataModel = new HashMap<>();
+        dataModel.put("reportCode", "SB20201012-001");
+        dataModel.put("companyName", "桃源科技有限公司");
+        dataModel.put("submit_date", "2020年10月12日");
+        List<String> reasonList = new ArrayList<String>() {
+            {
+                add("百度百科是百度公司推出的一部内容开放、自由的网络百科全书。其测试版于 2006\n" +
+                        "年4 月20 日上线，正式版在 2008 年 4月 21日发布，截至 2020年10月，百度百科已\n" +
+                        "经收录了超2100万个词条，参与词条编辑的网友超过717 万人，几乎涵盖了所有已知\n" +
+                        "的知识领域");
+                add("百度百科是百度公司推出的一部内容开放、自由的网络百科全书。其测试版于 2006\n" +
+                        "年4 月20 日上线，正式版在 2008 年 4月 21日发布，截至 2020年10月，百度百科已\n" +
+                        "经收录了超2100万个词条，参与词条编辑的网友超过717 万人，几乎涵盖了所有已知\n" +
+                        "的知识领域");
+                add("百度百科是百度公司推出的一部内容开放、自由的网络百科全书。其测试版于 2006\n" +
+                        "年4 月20 日上线，正式版在 2008 年 4月 21日发布，截至 2020年10月，百度百科已\n" +
+                        "经收录了超2100万个词条，参与词条编辑的网友超过717 万人，几乎涵盖了所有已知\n" +
+                        "的知识领域");
+            }
+        };
+
+        dataModel.put("reasonList", reasonList);
+        dataModel.put("agent", "桃源");
+        dataModel.put("agentPhone", "13717886659");
+        dataModel.put("auditOrg", "桃源科技有限公司");
+        dataModel.put("now_date", "2020年10月12日");
+        thymeleafRender.render("html_pdf.html", dataModel, new FileOutputStream("d://temp/word.pdf"));
+
+    }
+
     private Itext5PdfSign itext5PdfSign;
 
     @Test
@@ -229,7 +278,6 @@ public class ResourceLoaderTest {
 
     @Before
     public void before() {
-
         String signername = "桃源科技有限公司";
         String reason = "官方承认，不可篡改";
         String location = "桃源科技有限公司";
@@ -237,7 +285,6 @@ public class ResourceLoaderTest {
         String p12Path = "g://data/client.p12";
         String chapterPath = "g://data/stamp.png";
         String field_name = "sign_Field";
-
         Itext5PdfSign.SignConfig signConfig = new Itext5PdfSign.SignConfig();
         signConfig.setSignP12Path(p12Path);
         signConfig.setSignP12Password(password);
