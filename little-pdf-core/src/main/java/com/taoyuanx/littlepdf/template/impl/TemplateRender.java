@@ -74,7 +74,7 @@ public class TemplateRender implements LittlePdfTemplateRender {
         IRender render = null;
         while (iterator.hasNext()) {
             render = iterator.next();
-            if (render.accpect(fileSuffix)) {
+            if (render.accept(fileSuffix)) {
                 return render;
             }
         }
