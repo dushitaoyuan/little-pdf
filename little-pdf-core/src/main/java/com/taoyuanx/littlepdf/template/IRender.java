@@ -21,5 +21,5 @@ public interface IRender {
      * @param templateSuffix
      * @return
      */
-    boolean accpect(String templateSuffix);
+    boolean accept(String templateSuffix);
 }

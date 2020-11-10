@@ -15,7 +15,7 @@ public abstract class AbstractRender implements IRender {
     public abstract String render(String templatePath, Map<String, Object> renderData);
 
     @Override
-    public boolean accpect(String templateSuffix) {
+    public boolean accept(String templateSuffix) {
         if (suffix == null) {
             throw new PdfException("render suffix 未设置");
         }
