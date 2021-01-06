@@ -5,21 +5,17 @@ import com.deepoove.poi.data.NumbericRenderData;
 import com.deepoove.poi.data.TextRenderData;
 import com.deepoove.poi.data.style.Style;
 import com.deepoove.poi.data.style.StyleBuilder;
-import com.taoyuanx.littlepdf.sign.Itext5PdfSign;
 import com.taoyuanx.littlepdf.template.html.FreeMarkerHtmlRender;
 import com.taoyuanx.littlepdf.template.html.ThymeleafHtmlRender;
 import com.taoyuanx.littlepdf.template.html2pdf.Itext5PdfRenderConfig;
 import com.taoyuanx.littlepdf.template.impl.TemplateRender;
 import com.taoyuanx.littlepdf.template.word.WordTemplateRender;
-import org.junit.Before;
 import org.junit.Test;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
@@ -269,35 +265,6 @@ public class ResourceLoaderTest {
 
     }
 
-    private Itext5PdfSign itext5PdfSign;
 
-    @Test
-    public void signTest() throws Exception {
-        itext5PdfSign.sign(new FileInputStream("d://temp/word.pdf"), new FileOutputStream("d://temp/word_signed.pdf"));
-    }
-
-    @Before
-    public void before() {
-        String signername = "桃源科技有限公司";
-        String reason = "官方承认，不可篡改";
-        String location = "桃源科技有限公司";
-        String password = "123456";
-        String p12Path = "g://data/client.p12";
-        String chapterPath = "g://data/stamp.png";
-        String field_name = "sign_Field";
-        Itext5PdfSign.SignConfig signConfig = new Itext5PdfSign.SignConfig();
-        signConfig.setSignP12Path(p12Path);
-        signConfig.setSignP12Password(password);
-        signConfig.setChapterImgPath(chapterPath);
-        signConfig.setSignername(signername);
-        signConfig.setReason(reason);
-
-        signConfig.setLocation(location);
-        signConfig.setSignFiledName(field_name);
-        signConfig.setSignKeyWord("桃源科技有限公司");
-        itext5PdfSign = new Itext5PdfSign(signConfig);
-
-
-    }
 
 }

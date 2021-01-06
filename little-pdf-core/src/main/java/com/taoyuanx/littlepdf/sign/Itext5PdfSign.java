@@ -332,25 +332,24 @@ public class Itext5PdfSign {
 
             }
         }
-        if (keyWordLocation.isFullMatch()) {
+        if (KeyWordFinder.KEYWORD_MATCH_TYPE_FULL.equals(keyWordLocation.getKeywordMatchType())) {
             return keyWordLocation;
-        } else if (Objects.nonNull(keyWordLocation.getCharLocationList())) {
+        } else if (KeyWordFinder.KEYWORD_MATCH_TYPE_MIX.equals(keyWordLocation.getKeywordMatchType()) &&
+                Objects.nonNull(keyWordLocation.getMixMatchCharList())) {
+
             /**
              * 如果关键词被分拆,则返回中间字符的坐标
              */
-            List<KeyWordLocation> charLocationList = keyWordLocation.getCharLocationList();
-            int mid = charLocationList.size() / 2;
-            KeyWordLocation midChar = charLocationList.get(mid);
+            List<KeyWordCharLocation> mixMatchCharList = keyWordLocation.getMixMatchCharList();
+            KeyWordLocation midChar = KeyWordFinder.getMidChar(keyWord, mixMatchCharList);
             keyWordLocation.setLlx(midChar.getLlx());
             keyWordLocation.setLly(midChar.getLly());
             keyWordLocation.setUrx(midChar.getUrx());
             keyWordLocation.setUry(midChar.getUry());
-            keyWordLocation.setFullMatch(false);
             keyWordLocation.setKeyWordTextBlockHeight(midChar.getKeyWordTextBlockHeight());
             keyWordLocation.setKeyWordTextBlockWidth(midChar.getKeyWordTextBlockWidth());
             return keyWordLocation;
         }
-
         return keyWordLocation;
     }
 
@@ -365,8 +364,22 @@ public class Itext5PdfSign {
         @Getter
         @Setter
         private List<KeyWordLocation> keyWordLocationList;
-        private boolean firstFind;
-        private Integer keyWordCharMatchCount = 0;
+        /**
+         * 匹配类型
+         * <p>
+         * KEYWORD_MATCH_TYPE_FULL 关键词完全匹配
+         * KEYWORD_MATCH_TYPE_MIX 关键词混乱匹配
+         */
+        public static final Integer KEYWORD_MATCH_TYPE_FULL = 1,
+                KEYWORD_MATCH_TYPE_MIX = 2;
+        /**
+         * 当前模式 是否为混乱模式
+         */
+        private boolean isMixMatch;
+        /**
+         * 混乱匹配模式,已匹配的字符数(左匹配)
+         */
+        private Integer keyWordMixMatchCharMatchCount = 0;
 
         public KeyWordFinder(String keyWord, Integer pageNum, List<KeyWordLocation> keyWordLocationList) {
             this.keyWord = keyWord;
@@ -382,42 +395,77 @@ public class Itext5PdfSign {
             //查找到关键词,并设置关键词位置
             if (LittlePdfUtil.isNotEmpty(text)) {
                 if (text.contains(keyWord)) {
-                    keyWordLocationList.add(toKeyWordLocation(text, true));
+                    keyWordLocationList.add(toKeyWordLocation(text, KEYWORD_MATCH_TYPE_FULL));
+                    return;
+                } else {
+                    handleMatchMix(text);
                     return;
                 }
-                if (!firstFind && keyWord.startsWith(text)) {
-                    firstFind = true;
-                    keyWordCharMatchCount = text.length();
-                    KeyWordLocation keyWordLocation = toKeyWordLocation(text, false);
-                    List<KeyWordLocation> charLocationList = new ArrayList<>();
-                    charLocationList.add(keyWordLocation);
-                    keyWordLocation.setCharLocationList(charLocationList);
-                    keyWordLocationList.add(keyWordLocation);
+            }
+
+
+        }
+
+
+        private void handleMatchMix(String text) {
+            if (!isMixMatch) {
+                int matchCount = leftMatch(keyWord, text, 0);
+                if (matchCount > 0) {
+                    isMixMatch = true;
+                    keyWordMixMatchCharMatchCount = matchCount;
+                    KeyWordLocation keyWordMixMatchLocation = toKeyWordLocation(text, KEYWORD_MATCH_TYPE_MIX);
+
+                    KeyWordCharLocation keyWordCharLocation = toKeyWordCharLocation(text);
+                    keyWordCharLocation.setMixMatchCount(matchCount);
+                    keyWordCharLocation.setMixMatchStart(0);
+
+                    List<KeyWordCharLocation> mixMatchCharList = new ArrayList<>();
+                    mixMatchCharList.add(keyWordCharLocation);
+
+                    keyWordMixMatchLocation.setMixMatchCharList(mixMatchCharList);
+                    keyWordLocationList.add(keyWordMixMatchLocation);
                     return;
                 }
-                if (firstFind) {
-                    String lastWaitMatchKeyWord = keyWord.substring(keyWordCharMatchCount);
-                    if (keyWordCharMatchCount >= keyWord.length()) {
-                        //匹配结束
-                        firstFind = false;
-                    } else if (lastWaitMatchKeyWord.startsWith(text)) {
-                        //继续匹配中
-                        keyWordCharMatchCount += text.length();
-                        List<KeyWordLocation> charLocationList = LittlePdfUtil.getLast(keyWordLocationList).getCharLocationList();
-                        charLocationList.add(toKeyWordLocation(text, false));
-                    } else {
-                        firstFind = false;
-                        if (keyWordCharMatchCount > 0) {
-                            List<KeyWordLocation> charLocationList = LittlePdfUtil.getLast(keyWordLocationList).getCharLocationList();
-                            //删除不完全匹配
-                            LittlePdfUtil.removeLastList(charLocationList, keyWordCharMatchCount);
-                        }
-                    }
-
+            }
+            if (isMixMatch) {
+                int matchCount = leftMatch(keyWord, text, keyWordMixMatchCharMatchCount);
+                if (keyWordMixMatchCharMatchCount.equals(keyWord.length())) {
+                    //匹配结束
+                    isMixMatch = false;
+                    keyWordMixMatchCharMatchCount = 0;
+                } else if (matchCount > 0) {
+                    //继续匹配中
+                    List<KeyWordCharLocation> mixMatchCharList = LittlePdfUtil.getLast(keyWordLocationList).getMixMatchCharList();
+                    KeyWordCharLocation keyWordCharLocation = toKeyWordCharLocation(text);
+                    keyWordCharLocation.setMixMatchCount(matchCount);
+                    keyWordCharLocation.setMixMatchStart(keyWordMixMatchCharMatchCount);
+                    mixMatchCharList.add(keyWordCharLocation);
+                    keyWordMixMatchCharMatchCount += matchCount;
+                } else {
+                    isMixMatch = false;
+                    keyWordMixMatchCharMatchCount = 0;
+                    //删除不完全匹配
+                    LittlePdfUtil.removeLastList(keyWordLocationList, 1);
                 }
-
 
             }
+        }
+
+        private static int leftMatch(String keyWord, String text, int pos) {
+            int matchCount = 0, keyWordLen = keyWord.length();
+            for (int i = 0, len = text.length(); i < len; i++) {
+                int matchStart = pos + matchCount;
+                if (matchStart >= keyWordLen) {
+                    break;
+                }
+                if (Objects.equals(keyWord.charAt(matchStart), text.charAt(i))) {
+                    matchCount++;
+                }
+            }
+            if (matchCount > 0) {
+                return matchCount;
+            }
+            return -1;
         }
 
         public static enum KeyWordMatchType {
@@ -425,7 +473,7 @@ public class Itext5PdfSign {
             MATCH_FIRST;
         }
 
-        private KeyWordLocation toKeyWordLocation(String text, boolean fullMath) {
+        private KeyWordLocation toKeyWordLocation(String text, Integer keywordMatchType) {
             KeyWordLocation keyWordLocation = new KeyWordLocation();
             keyWordLocation.setKeyWordTextBlockHeight(this.getHeight());
             keyWordLocation.setKeyWordTextBlockWidth(this.getWidth());
@@ -435,8 +483,34 @@ public class Itext5PdfSign {
             keyWordLocation.setUry(this.getUry());
             keyWordLocation.setText(text);
             keyWordLocation.setPageNum(pageNum);
-            keyWordLocation.setFullMatch(fullMath);
+            keyWordLocation.setKeywordMatchType(keywordMatchType);
             return keyWordLocation;
+        }
+
+        private KeyWordCharLocation toKeyWordCharLocation(String text) {
+            KeyWordCharLocation keyWordCharLocation = new KeyWordCharLocation();
+            keyWordCharLocation.setKeyWordTextBlockHeight(this.getHeight());
+            keyWordCharLocation.setKeyWordTextBlockWidth(this.getWidth());
+            keyWordCharLocation.setLlx(this.getLlx());
+            keyWordCharLocation.setLly(this.getLly());
+            keyWordCharLocation.setUrx(this.getUrx());
+            keyWordCharLocation.setUry(this.getUry());
+            keyWordCharLocation.setText(text);
+            keyWordCharLocation.setPageNum(pageNum);
+            keyWordCharLocation.setKeywordMatchType(KEYWORD_MATCH_TYPE_MIX);
+            return keyWordCharLocation;
+        }
+
+        public static KeyWordCharLocation getMidChar(String keyWord, List<KeyWordCharLocation> mixMatchCharList) {
+            int midIndex = keyWord.length() / 2, count = 0;
+            for (int i = 0, len = mixMatchCharList.size(); i < len; i++) {
+                KeyWordCharLocation keyWordCharLocation = mixMatchCharList.get(i);
+                count += keyWordCharLocation.getMixMatchCount();
+                if (count >= midIndex) {
+                    return keyWordCharLocation;
+                }
+            }
+            return mixMatchCharList.get(0);
         }
     }
 
@@ -468,17 +542,38 @@ public class Itext5PdfSign {
          */
         private float keyWordTextBlockWidth;
         private float keyWordTextBlockHeight;
+
+
         /**
-         * 是否完全匹配
+         * 关键词匹配类型 参见keyFinder
          */
-        private boolean isFullMatch;
+        private Integer keywordMatchType;
+
         /**
          * 关键词被解析成多个TextRenderInfo
          */
-        private List<KeyWordLocation> charLocationList;
+        private List<KeyWordCharLocation> mixMatchCharList;
+
+    }
+
+    /**
+     * 混乱匹配模式下的 打散的关键词字符位置
+     */
+    @Data
+    public static class KeyWordCharLocation extends KeyWordLocation {
+        /**
+         * 混乱匹配时的起始位置
+         */
+        private Integer mixMatchStart;
+
+        /**
+         * 匹配的字符数
+         */
+        private Integer mixMatchCount;
 
 
     }
+
 
     @Data
     public static class PdfLocationResult {
