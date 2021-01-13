@@ -17,7 +17,6 @@ import com.taoyuanx.littlepdf.utils.RSAUtil;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
@@ -33,6 +32,8 @@ import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -246,6 +247,9 @@ public class Itext5PdfSign {
             //签章域左下角坐标
             float llx = keyWordLrx - signConfig.getStampWidth() / 2;
             float lly = keyWordLry - signConfig.getStampHeight() / 2;
+            if (llx < 0) {
+                llx = 0;
+            }
             /**
              * 横纵坐标向溢出处理
              */
@@ -254,7 +258,7 @@ public class Itext5PdfSign {
                 llx = pageSize.getWidth() - signConfig.getStampWidth();
             }
             if (lly < 0) {
-                llx = 0;
+                lly = 0;
             }
             //签章域右上角坐标
             float urx = llx + signConfig.getStampWidth();
@@ -262,7 +266,6 @@ public class Itext5PdfSign {
 
 
             Rectangle rectangle = new Rectangle(llx, lly, urx, ury);
-
             LOG.debug("查找到关键词[{}]位置,坐标为{}", keyWordLocation.getText(), keyWordLocation);
             return new PdfLocationResult(keyWordLocation.getPageNum(), rectangle);
         } else {
@@ -282,6 +285,8 @@ public class Itext5PdfSign {
 
     }
 
+
+
     /**
      * 根据关键词 计算签章位置
      *
@@ -291,57 +296,79 @@ public class Itext5PdfSign {
      * @return
      */
     private KeyWordLocation keyWordLocation(PdfReader pdfReader, String keyWord, Integer keyWordPageNum, KeyWordFinder.KeyWordMatchType matchType) {
-        List<KeyWordLocation> keyWordLocationList = Lists.newArrayList();
+        List<List<KeyWordLocation>> allPageKeyWordLocationList = new CopyOnWriteArrayList<>();
         try {
             int pageSize = pdfReader.getNumberOfPages();
             PdfReaderContentParser pdfReaderContentParser = new PdfReaderContentParser(pdfReader);
-            IntStream pageStream = null;
+            List<Integer> findPageList = null;
             if (Objects.nonNull(keyWordPageNum)) {
-                pageStream = IntStream.of(keyWordPageNum);
+                findPageList = new ArrayList<>(keyWordPageNum);
             } else {
-                pageStream = IntStream.range(1, pageSize + 1);
+                findPageList = IntStream.range(1, pageSize + 1).mapToObj(num -> {
+                    return num;
+                }).collect(Collectors.toList());
             }
-            pageStream.forEach(pageNum -> {
+
+            for (int i = 0, len = findPageList.size(); i < len; i++) {
                 try {
-                    pdfReaderContentParser.processContent(pageNum, new KeyWordFinder(keyWord, pageNum, keyWordLocationList));
+                    int pageNum = findPageList.get(i);
+                    KeyWordFinder keyWordFinder = new KeyWordFinder(keyWord, pageNum);
+
+                    pdfReaderContentParser.processContent(pageNum, keyWordFinder);
+                    List<KeyWordLocation> pageKeyWordLocationList = keyWordFinder.getKeyWordLocationList();
+                    if (Objects.nonNull(pageKeyWordLocationList) && !pageKeyWordLocationList.isEmpty()) {
+                        if (matchType.equals(KeyWordFinder.KeyWordMatchType.MATCH_FIRST)) {
+                            return findKeyWordLocationForPage(pageKeyWordLocationList, keyWord, matchType);
+                        } else {
+                            allPageKeyWordLocationList.add(pageKeyWordLocationList);
+                        }
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            });
+            }
+
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        KeyWordLocation keyWordLocation = null;
-        if (keyWordLocationList.isEmpty()) {
+        if (allPageKeyWordLocationList.isEmpty()) {
             return null;
         }
-        if (keyWordLocationList.size() == 1) {
-            keyWordLocation = keyWordLocationList.get(0);
+        if (allPageKeyWordLocationList.size() == 1) {
+            return findKeyWordLocationForPage(allPageKeyWordLocationList.get(0), keyWord, matchType);
+        }
+        return findKeyWordLocationForPage(LittlePdfUtil.getLast(allPageKeyWordLocationList), keyWord, matchType);
+    }
+
+    private KeyWordLocation findKeyWordLocationForPage(List<KeyWordLocation> pageKeyWordLocationList, String keyWord, KeyWordFinder.KeyWordMatchType matchType) {
+        KeyWordLocation keyWordLocation = null;
+        if (pageKeyWordLocationList.isEmpty()) {
+            return null;
+        }
+        if (pageKeyWordLocationList.size() == 1) {
+            keyWordLocation = pageKeyWordLocationList.get(0);
         } else {
             switch (matchType) {
-                case MATCH_LAST:
-                    keyWordLocation = LittlePdfUtil.getLast(keyWordLocationList);
-                    break;
                 case MATCH_FIRST:
-                    keyWordLocation = keyWordLocationList.get(0);
+                    keyWordLocation = pageKeyWordLocationList.get(0);
                     break;
                 default:
-                    keyWordLocation = LittlePdfUtil.getLast(keyWordLocationList);
+                    keyWordLocation = LittlePdfUtil.getLast(pageKeyWordLocationList);
                     break;
-
             }
         }
         if (KeyWordFinder.KEYWORD_MATCH_TYPE_FULL.equals(keyWordLocation.getKeywordMatchType())) {
             return keyWordLocation;
         } else if (KeyWordFinder.KEYWORD_MATCH_TYPE_MIX.equals(keyWordLocation.getKeywordMatchType()) &&
-                Objects.nonNull(keyWordLocation.getMixMatchCharList())) {
-
+                Objects.nonNull(keyWordLocation.getMixMatchCharList()) &&
+                Objects.nonNull(keyWordLocation.getAllMatchCount()) && keyWordLocation.getAllMatchCount().equals(keyWord.length())) {
             /**
              * 如果关键词被分拆,则返回中间字符的坐标
              */
             List<KeyWordCharLocation> mixMatchCharList = keyWordLocation.getMixMatchCharList();
             KeyWordLocation midChar = KeyWordFinder.getMidChar(keyWord, mixMatchCharList);
+            keyWordLocation.setText(keyWord);
             keyWordLocation.setLlx(midChar.getLlx());
             keyWordLocation.setLly(midChar.getLly());
             keyWordLocation.setUrx(midChar.getUrx());
@@ -381,20 +408,23 @@ public class Itext5PdfSign {
          */
         private Integer keyWordMixMatchCharMatchCount = 0;
 
-        public KeyWordFinder(String keyWord, Integer pageNum, List<KeyWordLocation> keyWordLocationList) {
+
+        public KeyWordFinder(String keyWord, Integer pageNum) {
             this.keyWord = keyWord;
             this.pageNum = pageNum;
-            this.keyWordLocationList = keyWordLocationList;
+            this.keyWordLocationList = new ArrayList<>();
         }
 
         @Override
         public void renderText(TextRenderInfo renderInfo) {
             super.renderText(renderInfo);
             String text = renderInfo.getText();
-            LOG.debug("pdf文本:[{}] 文本宽度{},文本高度", text, this.getWidth(), this.getHeight());
+            LOG.debug("pdf文本:[{}] 文本宽度:{},文本高度:{}", text, this.getWidth(), this.getHeight());
             //查找到关键词,并设置关键词位置
             if (LittlePdfUtil.isNotEmpty(text)) {
-                if (text.contains(keyWord)) {
+                if (isMixMatch) {
+                    handleMatchMix(text);
+                } else if (text.contains(keyWord)) {
                     keyWordLocationList.add(toKeyWordLocation(text, KEYWORD_MATCH_TYPE_FULL));
                     return;
                 } else {
@@ -408,44 +438,53 @@ public class Itext5PdfSign {
 
 
         private void handleMatchMix(String text) {
+            int keyWordLength = keyWord.length();
             if (!isMixMatch) {
-                int matchCount = leftMatch(keyWord, text, 0);
-                if (matchCount > 0) {
+                MaybeMixMatch mixMatch = isMixMatch(keyWord, text);
+                if (mixMatch.isMixMatch()) {
                     isMixMatch = true;
-                    keyWordMixMatchCharMatchCount = matchCount;
+                    keyWordMixMatchCharMatchCount = mixMatch.getMatchCount();
                     KeyWordLocation keyWordMixMatchLocation = toKeyWordLocation(text, KEYWORD_MATCH_TYPE_MIX);
-
+                    keyWordMixMatchLocation.setAllMatchCount(keyWordMixMatchCharMatchCount);
                     KeyWordCharLocation keyWordCharLocation = toKeyWordCharLocation(text);
-                    keyWordCharLocation.setMixMatchCount(matchCount);
-                    keyWordCharLocation.setMixMatchStart(0);
-
+                    keyWordCharLocation.setMixMatchCount(keyWordMixMatchCharMatchCount);
+                    keyWordCharLocation.setMixMatchStart(mixMatch.getMatchStart());
                     List<KeyWordCharLocation> mixMatchCharList = new ArrayList<>();
                     mixMatchCharList.add(keyWordCharLocation);
-
                     keyWordMixMatchLocation.setMixMatchCharList(mixMatchCharList);
                     keyWordLocationList.add(keyWordMixMatchLocation);
+                    if (keyWordMixMatchCharMatchCount.equals(keyWordLength)) {
+                        //当已匹配字符数等于关键词字符数 匹配结束
+                        isMixMatch = false;
+                        keyWordMixMatchCharMatchCount = 0;
+                        return;
+                    }
                     return;
                 }
-            }
-            if (isMixMatch) {
+            } else {
                 int matchCount = leftMatch(keyWord, text, keyWordMixMatchCharMatchCount);
-                if (keyWordMixMatchCharMatchCount.equals(keyWord.length())) {
-                    //匹配结束
-                    isMixMatch = false;
-                    keyWordMixMatchCharMatchCount = 0;
-                } else if (matchCount > 0) {
+                if (matchCount > 0) {
+                    KeyWordLocation keyWordMixMatchLocation = LittlePdfUtil.getLast(keyWordLocationList);
                     //继续匹配中
-                    List<KeyWordCharLocation> mixMatchCharList = LittlePdfUtil.getLast(keyWordLocationList).getMixMatchCharList();
+                    List<KeyWordCharLocation> mixMatchCharList = keyWordMixMatchLocation.getMixMatchCharList();
                     KeyWordCharLocation keyWordCharLocation = toKeyWordCharLocation(text);
                     keyWordCharLocation.setMixMatchCount(matchCount);
                     keyWordCharLocation.setMixMatchStart(keyWordMixMatchCharMatchCount);
                     mixMatchCharList.add(keyWordCharLocation);
                     keyWordMixMatchCharMatchCount += matchCount;
+                    keyWordMixMatchLocation.setAllMatchCount(keyWordMixMatchCharMatchCount);
+                    if (keyWordMixMatchCharMatchCount.equals(keyWordLength)) {
+                        //当已匹配字符数等于关键词字符数 匹配结束
+                        isMixMatch = false;
+                        keyWordMixMatchCharMatchCount = 0;
+                        return;
+                    }
                 } else {
+                    //未匹配,删除
                     isMixMatch = false;
                     keyWordMixMatchCharMatchCount = 0;
-                    //删除不完全匹配
                     LittlePdfUtil.removeLastList(keyWordLocationList, 1);
+                    return;
                 }
 
             }
@@ -460,6 +499,9 @@ public class Itext5PdfSign {
                 }
                 if (Objects.equals(keyWord.charAt(matchStart), text.charAt(i))) {
                     matchCount++;
+                } else if (matchCount > 0) {
+                    //当字符匹配过程中,出现一个不匹配的字符即为不匹配
+                    return -1;
                 }
             }
             if (matchCount > 0) {
@@ -467,6 +509,36 @@ public class Itext5PdfSign {
             }
             return -1;
         }
+
+        /**
+         * 判断是否为mixMatch
+         * 返回 判断结果
+         */
+        private static MaybeMixMatch isMixMatch(String keyWord, String text) {
+            int matchCount = 0, firstMatchStart = -1;
+            for (int i = 0, len = text.length(); i < len; i++) {
+                int matchStart = matchCount;
+                if (Objects.equals(keyWord.charAt(matchStart), text.charAt(i))) {
+                    if (firstMatchStart == -1) {
+                        firstMatchStart = i;
+                    }
+                    matchCount++;
+                } else if (matchCount > 0) {
+                    firstMatchStart = -1;
+                    matchCount = 0;
+                }
+
+            }
+            if (matchCount > 0) {
+                MaybeMixMatch maybeMixMatch = new MaybeMixMatch(true);
+                maybeMixMatch.setMatchStart(firstMatchStart);
+                maybeMixMatch.setMatchCount(matchCount);
+                return maybeMixMatch;
+            }
+            return MaybeMixMatch.NOT_MIX_MATCH;
+        }
+
+
 
         public static enum KeyWordMatchType {
             MATCH_LAST,
@@ -514,6 +586,28 @@ public class Itext5PdfSign {
         }
     }
 
+    @Data
+    private static class MaybeMixMatch {
+        private boolean mixMatch;
+        /**
+         * 开始匹配的位置
+         */
+        private int matchStart;
+        /**
+         * 匹配的字符数量
+         */
+        private int matchCount;
+
+        public MaybeMixMatch(boolean mixMatch) {
+            this.mixMatch = mixMatch;
+        }
+
+
+        public static final MaybeMixMatch NOT_MIX_MATCH = new MaybeMixMatch(false);
+
+
+    }
+
     /**
      * 签章关键词文本位置
      */
@@ -553,6 +647,11 @@ public class Itext5PdfSign {
          * 关键词被解析成多个TextRenderInfo
          */
         private List<KeyWordCharLocation> mixMatchCharList;
+
+        /**
+         * 匹配的字符数
+         */
+        private Integer allMatchCount;
 
     }
 
